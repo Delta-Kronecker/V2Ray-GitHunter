@@ -9,6 +9,7 @@ import sys
 import json
 import argparse
 from datetime import datetime
+from typing import Dict
 
 # Add src directory to path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
