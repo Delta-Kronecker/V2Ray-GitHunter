@@ -6,14 +6,19 @@ Fetches and stores repository main page sources
 import os
 import time
 import requests
+import json
+import hashlib
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 
 
 class SourceFetcher:
-    def __init__(self, sources_dir: str = "data/sources"):
+    def __init__(self, sources_dir: str = "data/sources", cache_dir: str = "cache", max_workers: int = 10):
         self.sources_dir = sources_dir
+        self.cache_dir = cache_dir
+        self.max_workers = max_workers
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -21,6 +26,31 @@ class SourceFetcher:
 
         # Create directories
         os.makedirs(sources_dir, exist_ok=True)
+        os.makedirs(cache_dir, exist_ok=True)
+
+    def _get_cache_key(self, url: str) -> str:
+        """Generate cache key for URL"""
+        return hashlib.md5(url.encode()).hexdigest()
+
+    def _load_from_cache(self, cache_key: str) -> str or None:
+        """Load source from cache"""
+        cache_file = os.path.join(self.cache_dir, f"source_{cache_key}.html")
+        try:
+            if os.path.exists(cache_file):
+                with open(cache_file, 'r', encoding='utf-8') as f:
+                    return f.read()
+        except Exception as e:
+            print(f"Error loading source cache: {e}")
+        return None
+
+    def _save_to_cache(self, cache_key: str, content: str):
+        """Save source to cache"""
+        cache_file = os.path.join(self.cache_dir, f"source_{cache_key}.html")
+        try:
+            with open(cache_file, 'w', encoding='utf-8') as f:
+                f.write(content)
+        except Exception as e:
+            print(f"Error saving source cache: {e}")
 
     def fetch_repository_source(self, repo: Dict) -> str:
         """
@@ -28,12 +58,19 @@ class SourceFetcher:
         """
         try:
             url = repo['html_url']
-            print(f"Fetching source for: {repo['full_name']}")
+            cache_key = self._get_cache_key(url)
+
+            # Try cache first
+            cached_content = self._load_from_cache(cache_key)
+            if cached_content:
+                return cached_content
 
             response = self.session.get(url, timeout=30)
             response.raise_for_status()
 
-            return response.text
+            content = response.text
+            self._save_to_cache(cache_key, content)
+            return content
 
         except Exception as e:
             print(f"Error fetching source for {repo['full_name']}: {e}")
@@ -58,15 +95,9 @@ class SourceFetcher:
             print(f"Error saving source for {repo['full_name']}: {e}")
             return ""
 
-    def fetch_and_save_all_sources(self, repos: List[Dict]) -> List[Dict]:
-        """
-        Fetch and save sources for all repositories
-        """
-        results = []
-
-        for i, repo in enumerate(repos):
-            print(f"Processing repository {i+1}/{len(repos)}: {repo['full_name']}")
-
+    def _process_single_repo(self, repo: Dict) -> Dict:
+        """Process a single repository"""
+        try:
             # Fetch source
             source = self.fetch_repository_source(repo)
 
@@ -78,10 +109,35 @@ class SourceFetcher:
                     result = repo.copy()
                     result['source_file'] = filepath
                     result['source_length'] = len(source)
-                    results.append(result)
+                    return result
 
-            # Rate limiting
-            time.sleep(1)
+        except Exception as e:
+            print(f"Error processing repository {repo['full_name']}: {e}")
+
+        return None
+
+    def fetch_and_save_all_sources(self, repos: List[Dict]) -> List[Dict]:
+        """
+        Fetch and save sources for all repositories using parallel processing
+        """
+        results = []
+
+        print(f"Processing {len(repos)} repositories with {self.max_workers} workers")
+
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            # Submit all tasks
+            future_to_repo = {executor.submit(self._process_single_repo, repo): repo for repo in repos}
+
+            # Process completed tasks
+            for i, future in enumerate(as_completed(future_to_repo)):
+                repo = future_to_repo[future]
+                try:
+                    result = future.result()
+                    if result:
+                        results.append(result)
+                        print(f"Progress: {i+1}/{len(repos)} - Processed {repo['full_name']}")
+                except Exception as e:
+                    print(f"Error processing {repo['full_name']}: {e}")
 
         print(f"Successfully fetched and saved {len(results)} sources")
         return results
