@@ -36,7 +36,7 @@ class GitHubSearcher:
             "hysteria2", "v2ray", "proxy"
         ]
 
-    def search_repositories(self, max_results_per_search: int = 100) -> List[Dict]:
+    def search_repositories(self, max_results_per_search: int = 3) -> List[Dict]:
         """
         Search GitHub for repositories containing proxy configuration collectors
         """
