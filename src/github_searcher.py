@@ -7,6 +7,7 @@ import os
 import time
 import json
 import hashlib
+import re
 from typing import List, Dict, Set
 from github import Github
 from github.Repository import Repository
@@ -117,11 +118,25 @@ class GitHubSearcher:
                                 if repo_id not in seen_repos:
                                     seen_repos.add(repo_id)
 
+                                    # Get repository README for about section
+                                    about_text = ""
+                                    try:
+                                        readme = repo.get_readme()
+                                        if readme:
+                                            about_text = readme.decoded_content.decode('utf-8')[:500]  # First 500 chars
+                                            # Remove markdown and HTML tags
+                                            about_text = re.sub(r'<[^>]+>', '', about_text)
+                                            about_text = re.sub(r'[#*`\[\]()_-]', '', about_text)
+                                            about_text = ' '.join(about_text.split())[:200]  # First 200 words
+                                    except:
+                                        pass
+
                                     repo_info = {
                                         'name': repo.name,
                                         'full_name': repo.full_name,
                                         'owner': repo.owner.login,
                                         'description': repo.description or '',
+                                        'about': about_text,
                                         'html_url': repo.html_url,
                                         'clone_url': repo.clone_url,
                                         'stars': repo.stargazers_count,
