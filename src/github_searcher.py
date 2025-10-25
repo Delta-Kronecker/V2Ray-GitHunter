@@ -84,11 +84,10 @@ class GitHubSearcher:
             try:
                 print(f"Searching for: {keyword}")
 
-                # Search with different query combinations
+                # Search with more specific queries to reduce false positives
                 queries = [
-                    f"{keyword} in:name,description,readme",
                     f"{keyword} in:name,description",
-                    f"{keyword}"
+                    f"{keyword} in:name"
                 ]
 
                 for query in queries:
@@ -131,26 +130,45 @@ class GitHubSearcher:
                                     except:
                                         pass
 
-                                    repo_info = {
-                                        'name': repo.name,
-                                        'full_name': repo.full_name,
-                                        'owner': repo.owner.login,
-                                        'description': repo.description or '',
-                                        'about': about_text,
-                                        'html_url': repo.html_url,
-                                        'clone_url': repo.clone_url,
-                                        'stars': repo.stargazers_count,
-                                        'forks': repo.forks_count,
-                                        'language': repo.language,
-                                        'created_at': repo.created_at.isoformat() if repo.created_at else None,
-                                        'updated_at': repo.updated_at.isoformat() if repo.updated_at else None,
-                                        'size': repo.size,
-                                        'topics': list(repo.get_topics()) if repo.get_topics() else [],
-                                        'search_keyword': keyword
-                                    }
+                                    # Additional filtering to reduce irrelevant repositories
+                                    repo_name_lower = repo.name.lower()
+                                    repo_desc_lower = (repo.description or '').lower()
+                                    keyword_lower = keyword.lower()
 
-                                    query_repos.append(repo_info)
-                                    count += 1
+                                    # Check if repository is actually relevant
+                                    is_relevant = (
+                                        keyword_lower in repo_name_lower or
+                                        keyword_lower in repo_desc_lower or
+                                        any(proto in repo_name_lower or proto in repo_desc_lower
+                                            for proto in ['v2ray', 'proxy', 'shadowsocks', 'vless', 'vmess', 'trojan', 'ss', 'hy2'])
+                                    )
+
+                                    # Skip repositories with generic names that are likely false positives
+                                    generic_names = ['config', 'collector', 'template', 'example', 'demo', 'test', 'sample']
+                                    is_generic = any(generic in repo_name_lower for generic in generic_names)
+
+                                    # Only include if relevant and not too generic
+                                    if is_relevant and not is_generic:
+                                        repo_info = {
+                                            'name': repo.name,
+                                            'full_name': repo.full_name,
+                                            'owner': repo.owner.login,
+                                            'description': repo.description or '',
+                                            'about': about_text,
+                                            'html_url': repo.html_url,
+                                            'clone_url': repo.clone_url,
+                                            'stars': repo.stargazers_count,
+                                            'forks': repo.forks_count,
+                                            'language': repo.language,
+                                            'created_at': repo.created_at.isoformat() if repo.created_at else None,
+                                            'updated_at': repo.updated_at.isoformat() if repo.updated_at else None,
+                                            'size': repo.size,
+                                            'topics': list(repo.get_topics()) if repo.get_topics() else [],
+                                            'search_keyword': keyword
+                                        }
+
+                                        query_repos.append(repo_info)
+                                        count += 1
 
                             # Save to cache
                             self._save_to_cache(cache_key, query_repos)
