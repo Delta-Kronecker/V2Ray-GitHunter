@@ -8,7 +8,7 @@ import csv
 import os
 from datetime import datetime
 from typing import List, Dict, Any
-from src.proxy_filter import ProxyFilter
+from .proxy_filter import ProxyFilter
 
 
 class OutputGenerator:
@@ -232,19 +232,28 @@ class OutputGenerator:
                         f.write(f"- **{protocol.upper()}:** {count}\n")
                     f.write("\n")
 
-                # Top repositories
-                f.write("## Top Repositories\n\n")
-                top_repos = sorted(data['repositories'], key=lambda x: x['high_priority_count'], reverse=True)[:20]
+                # All repositories sorted by stars
+                f.write("## All Repositories (Sorted by Stars)\n\n")
+                sorted_repos = sorted(data['repositories'], key=lambda x: x['stars'], reverse=True)
 
-                for repo in top_repos:
-                    f.write(f"### [{repo['full_name']}]({repo['html_url']})\n\n")
-                    f.write(f"**Stars:** {repo['stars']} | **Forks:** {repo['forks']} | **Language:** {repo.get('language', 'N/A')}\n\n")
+                for i, repo in enumerate(sorted_repos, 1):
+                    f.write(f"### {i}. [{repo['full_name']}]({repo['html_url']})\n\n")
+                    f.write(f"**⭐ Stars:** {repo['stars']} | **🍴 Forks:** {repo['forks']} | **💻 Language:** {repo.get('language', 'N/A')}\n\n")
+
                     if repo['description']:
-                        f.write(f"{repo['description']}\n\n")
-                    f.write(f"**High Priority Links:** {repo['high_priority_count']}\n\n")
+                        f.write(f"**📝 Description:** {repo['description']}\n\n")
+
+                    f.write(f"**🔗 Repository Link:** {repo['html_url']}\n\n")
+
+                    # Add About section if available
+                    if repo.get('about'):
+                        f.write(f"**ℹ️ About:** {repo['about']}\n\n")
+
+                    f.write(f"**🔍 Found with keyword:** {repo.get('search_keyword', 'N/A')}\n\n")
+                    f.write(f"**📊 Statistics:** {repo['links_count']} total links, {repo['high_priority_count']} high priority links\n\n")
 
                     if repo['high_priority_links']:
-                        f.write("**Links:**\n")
+                        f.write("**🚀 High Priority Links:**\n")
                         for link in repo['high_priority_links'][:10]:  # Show first 10 links
                             f.write(f"- {link}\n")
                         if len(repo['high_priority_links']) > 10:
@@ -252,6 +261,13 @@ class OutputGenerator:
                         f.write("\n")
 
                     f.write("---\n\n")
+
+                # High priority links summary
+                if data['summary']['high_priority_links']:
+                    f.write("## 🚀 All High Priority Links\n\n")
+                    for link in data['summary']['high_priority_links']:
+                        f.write(f"- {link}\n")
+                    f.write("\n")
 
             print(f"Markdown report saved to: {filepath}")
             return filepath
