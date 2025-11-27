@@ -1,17 +1,17 @@
 {
-  "timestamp": "2025-11-26T03:28:03.614651",
+  "timestamp": "2025-11-27T03:43:34.613929",
   "configuration": {
     "max_results": 100,
     "max_workers": 10,
     "test_mode": false
   },
-  "total_repositories_found": 659,
-  "sources_fetched": 659,
-  "links_extracted": 659,
+  "total_repositories_found": 661,
+  "sources_fetched": 661,
+  "links_extracted": 661,
   "output_files": [
-    "output/v2ray_githunter_results_20251126_032803.json",
-    "output/v2ray_githunter_results_20251126_032803.csv",
-    "output/high_priority_links_20251126_032803.txt",
-    "output/v2ray_githunter_report_20251126_032803.md"
+    "output/v2ray_githunter_results_20251127_034334.json",
+    "output/v2ray_githunter_results_20251127_034334.csv",
+    "output/high_priority_links_20251127_034334.txt",
+    "output/v2ray_githunter_report_20251127_034334.md"
   ]
 }
