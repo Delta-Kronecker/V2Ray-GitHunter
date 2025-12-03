@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-12-02T03:31:41.622385",
+  "timestamp": "2025-12-03T03:53:35.047007",
   "configuration": {
     "max_results": 100,
     "max_workers": 10,
@@ -9,9 +9,9 @@
   "sources_fetched": 661,
   "links_extracted": 661,
   "output_files": [
-    "output/v2ray_githunter_results_20251202_033141.json",
-    "output/v2ray_githunter_results_20251202_033141.csv",
-    "output/high_priority_links_20251202_033141.txt",
-    "output/v2ray_githunter_report_20251202_033141.md"
+    "output/v2ray_githunter_results_20251203_035334.json",
+    "output/v2ray_githunter_results_20251203_035334.csv",
+    "output/high_priority_links_20251203_035335.txt",
+    "output/v2ray_githunter_report_20251203_035335.md"
   ]
 }
